@@ -1,20 +1,24 @@
-﻿import urllib.parse
+# taller_web/tickets.py
+import urllib.parse
 
-def generar_ticket_hotel(datos):
+def generar_ticket_taller(datos):
     simbolo = {"USD": "$", "HNL": "L", "EUR": "€"}.get(datos.get("moneda", "USD"), datos.get("moneda", "$"))
     lineas = [
-        "=" * 40,
-        f"  TICKET DE ALQUILER #{datos.get('id', '')}",
-        "=" * 40,
-        f"Hotel: {datos.get('hotel_nombre', '')}",
-        f"Huésped: {datos.get('huesped', '')}",
-        f"Habitación: {datos.get('hab_numero', '')} ({datos.get('hab_tipo', '')})",
-        f"Periodo: {datos.get('cantidad', '')} {datos.get('periodo_texto', 'día(s)')}",
-        f"Tarifa: {simbolo}{datos.get('tarifa', 0):.2f}",
-        "-" * 40,
-        f"TOTAL: {simbolo}{datos.get('total', 0):.2f} {datos.get('moneda', '')}",
-        "=" * 40,
+        "=" * 45,
+        f"  ORDEN DE SERVICIO #{datos.get('id', '')}",
+        "=" * 45,
+        f"Taller: {datos.get('taller_nombre', '')}",
+        f"Cliente: {datos.get('cliente', '')}",
+        f"Equipo/Vehículo: {datos.get('equipo_numero', '')} ({datos.get('equipo_tipo', '')})",
+        "-" * 45,
+        f"Diagnóstico/Servicio: {datos.get('observaciones', 'Mantenimiento general')}",
+        f"Mano de Obra: {simbolo}{datos.get('tarifa', 0):.2f}",
+        f"Cantidad/Horas: {datos.get('cantidad_periodos', '1')}",
+        "-" * 45,
+        f"TOTAL A PAGAR: {simbolo}{datos.get('total', 0):.2f} {datos.get('moneda', '')}",
+        "=" * 45,
         "¡Gracias por su preferencia!",
+        "Garantía válida presentando este ticket.",
     ]
     return "\n".join(lineas)
 
@@ -33,22 +37,22 @@ def generar_enlace_sms(telefono, texto):
     return f"sms:{tel}?body={urllib.parse.quote(texto)}"
 
 
-def generar_mensaje_celular(datos, plantilla=None, hotel_nombre=""):
+def generar_mensaje_celular(datos, plantilla=None, taller_nombre=""):
     simbolo = {"USD": "$", "HNL": "L", "EUR": "€"}.get(datos.get("moneda", "USD"), datos.get("moneda", "$"))
     if not plantilla:
         plantilla = (
-            "Hola {huesped}, gracias por hospedarte en {hotel_nombre}. "
-            "Tu alquiler en la habitación {hab_numero} por {cantidad} {periodo_texto} "
-            "tiene un total de {simbolo}{total} {moneda}. ¡Buen día!"
+            "Hola {cliente}, te saludamos de {taller_nombre}. "
+            "Tu equipo {equipo_numero} ya está listo. "
+            "El total del servicio es {simbolo}{total} {moneda}. ¡Te esperamos!"
         )
     return (
         plantilla
-        .replace("{huesped}", datos.get("huesped", ""))
-        .replace("{hotel_nombre}", hotel_nombre)
-        .replace("{hab_numero}", str(datos.get("hab_numero", "")))
-        .replace("{hab_tipo}", str(datos.get("hab_tipo", "")))
-        .replace("{cantidad}", str(datos.get("cantidad", "")))
-        .replace("{periodo_texto}", datos.get("periodo_texto", "día(s)"))
+        .replace("{cliente}", datos.get("cliente", ""))
+        .replace("{taller_nombre}", taller_nombre)
+        .replace("{equipo_numero}", str(datos.get("equipo_numero", "")))
+        .replace("{equipo_tipo}", str(datos.get("equipo_tipo", "")))
+        .replace("{cantidad}", str(datos.get("cantidad_periodos", "")))
+        .replace("{periodo_texto}", "servicio")
         .replace("{simbolo}", simbolo)
         .replace("{total}", f"{datos.get('total', 0):.2f}")
         .replace("{moneda}", datos.get("moneda", ""))

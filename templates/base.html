@@ -3,15 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Hotel / Cuartería</title>
+  <title>SowareTaller</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
- <nav>
-  <a href="/habitaciones">🛏️ Habitaciones</a>
-  <a href="/huespedes">👤 Huéspedes</a>
-  <a href="/alquileres">🔑 Alquileres</a>
-  <a href="/mensajes">📱 Mensajes</a>
+
+ <!-- Ejemplo de cómo debe quedar tu menú -->
+<nav>
+  <a href="/equipos">🛠️ Equipos</a>
+  <a href="/clientes">👥 Clientes</a>
+  <a href="/ordenes">📋 Órdenes de Servicio</a>
+  <a href="/mensajes">💬 Mensajes</a>
 </nav>
 
   {% with mensajes = get_flashed_messages(with_categories=true) %}

@@ -1,4 +1,4 @@
-# hotel_web/app.py
+# taller_web/app.py
 import os
 import urllib.parse
 from dotenv import load_dotenv
@@ -7,16 +7,18 @@ load_dotenv()
 
 from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+
+# Importamos las funciones con nombres profesionales
 from db import (
     migrar, migrar_mensajes,
-    crear_hotel, listar_hoteles, obtener_hotel, obtener_hotel_por_email_pin, regenerar_pin_hotel,
-    listar_habitaciones, crear_habitacion, actualizar_habitacion, eliminar_habitacion, obtener_habitacion,
-    listar_huespedes, crear_huesped, obtener_huesped,
-    registrar_alquiler, obtener_alquiler, cerrar_alquiler, listar_alquileres_activos,
+    crear_taller, listar_talleres, obtener_taller_por_email_pin, regenerar_pin_taller,
+    listar_equipos, crear_equipo, actualizar_equipo, eliminar_equipo, obtener_equipo,
+    listar_clientes, crear_cliente, obtener_cliente,
+    registrar_orden, obtener_orden, cerrar_orden, listar_ordenes_activas,
     listar_plantillas, guardar_plantilla, eliminar_plantilla,
 )
 from tickets import (
-    generar_ticket_hotel, generar_enlace_whatsapp, generar_enlace_sms,
+    generar_ticket_taller, generar_enlace_whatsapp, generar_enlace_sms,
     generar_mensaje_celular,
 )
 
@@ -30,13 +32,12 @@ with app.app_context():
     except Exception as e:
         print("⚠️ No se pudo migrar la base de datos:", e)
 
-
 # ==================== LOGIN ====================
 
-def hotel_requerido(f):
+def taller_requerido(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
-        if not session.get("hotel_id"):
+        if not session.get("taller_id"):
             return redirect(url_for("login"))
         return f(*args, **kwargs)
     return wrapper
@@ -47,11 +48,11 @@ def login():
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
         pin = request.form.get("pin", "").strip()
-        hotel = obtener_hotel_por_email_pin(email, pin)
-        if hotel:
-            session["hotel_id"] = hotel["id"]
-            session["hotel_nombre"] = hotel["nombre"]
-            return redirect(url_for("alquileres"))
+        taller = obtener_taller_por_email_pin(email, pin)
+        if taller:
+            session["taller_id"] = taller["id"]
+            session["taller_nombre"] = taller["nombre"]
+            return redirect(url_for("ordenes"))
         flash("Correo o PIN incorrecto", "error")
     return render_template("login.html")
 
@@ -62,10 +63,10 @@ def logout():
     return redirect(url_for("login"))
 
 
-# ==================== REGISTRO PÚBLICO DE HOTEL ====================
+# ==================== REGISTRO ====================
 
 @app.route("/registro", methods=["POST"])
-def registro_hotel():
+def registro_taller():
     nombre = request.form.get("nombre", "").strip()
     email = request.form.get("email", "").strip().lower()
     telefono = request.form.get("telefono", "").strip()
@@ -76,83 +77,80 @@ def registro_hotel():
         return redirect(url_for("login"))
 
     try:
-        hid, pin = crear_hotel(nombre, email, telefono, direccion)
+        tid, pin = crear_taller(nombre, email, telefono, direccion)
     except Exception as e:
         flash(f"Error al registrar: {e}", "error")
         return redirect(url_for("login"))
 
-    # Mensaje limpio: no muestra el PIN al público
-    flash("✅ Solicitud recibida. Contacta al administrador para activar tu cuenta y recibir tu PIN.", "ok")
+    flash("✅ Solicitud recibida. Contacta al administrador para activar tu taller y recibir tu PIN.", "ok")
     return redirect(url_for("login"))
 
 
-# ==================== PANEL DE CONTROL DE PINES (SOLO PARA TI) ====================
+# ==================== PANEL DE CONTROL ====================
 
 @app.route("/admin/control-pin", methods=["GET"])
 def admin_control_pin():
-    # Protección con clave secreta en la URL
     clave_secreta = request.args.get("clave")
-    if clave_secreta != "hotelmaster2026": 
+    if clave_secreta != "tallermaster2026":
         return "Acceso denegado. Falta la clave secreta.", 403
-        
-    return render_template("admin_control_pin.html", hoteles=listar_hoteles())
+    return render_template("admin_control_pin.html", talleres=listar_talleres())
 
 
-@app.route("/admin/control-pin/<int:hid>/regenerar", methods=["POST"])
-def admin_regenerar_pin(hid):
+@app.route("/admin/control-pin/<int:tid>/regenerar", methods=["POST"])
+def admin_regenerar_pin(tid):
     try:
-        nuevo_pin = regenerar_pin_hotel(hid)
+        nuevo_pin = regenerar_pin_taller(tid)
         flash(f"✅ PIN regenerado exitosamente: {nuevo_pin}", "ok")
     except Exception as e:
         flash(f"Error al regenerar PIN: {e}", "error")
-    return redirect(url_for("admin_control_pin", clave="hotelmaster2026"))
+    return redirect(url_for("admin_control_pin", clave="tallermaster2026"))
 
 
 # ==================== INICIO ====================
 
 @app.route("/")
-@hotel_requerido
+@taller_requerido
 def index():
-    return redirect(url_for("alquileres"))
+    return redirect(url_for("ordenes"))
 
 
-# ==================== HABITACIONES ====================
+# ==================== EQUIPOS ====================
 
-@app.route("/habitaciones", methods=["GET", "POST"])
-@hotel_requerido
-def habitaciones():
-    hid = session["hotel_id"]
+@app.route("/equipos", methods=["GET", "POST"])
+@taller_requerido
+def equipos():
+    tid = session["taller_id"]
     if request.method == "POST":
         try:
-            crear_habitacion(
-                hid,
-                request.form["numero"].strip(),
-                request.form["tipo"].strip(),
-                int(request.form["capacidad"]),
-                float(request.form["precio_dia"]),
+            crear_equipo(
+                tid,
+                request.form["numero"].strip(), # Placa o Modelo
+                request.form["tipo"].strip(),   # Marca o Tipo
+                int(request.form["capacidad"]), # Año o Capacidad
+                float(request.form["precio_dia"]), # Tarifa base
                 request.form.get("notas", "").strip(),
             )
-            flash("Habitación creada.", "ok")
+            flash("Equipo registrado exitosamente.", "ok")
         except Exception as e:
             flash(f"Error: {e}", "error")
-        return redirect(url_for("habitaciones"))
-    return render_template("habitaciones.html",
-                           habitaciones=listar_habitaciones(hid),
-                           hotel_nombre=session.get("hotel_nombre", ""))
+        return redirect(url_for("equipos"))
+    return render_template("equipos.html",
+                           equipos=listar_equipos(tid),
+                           taller_nombre=session.get("taller_nombre", ""))
 
 
-@app.route("/habitaciones/<int:hid>/editar", methods=["GET", "POST"])
-@hotel_requerido
-def editar_habitacion(hid):
-    hotel_id = session["hotel_id"]
-    hab = obtener_habitacion(hotel_id, hid)
-    if not hab:
-        flash("Habitación no encontrada.", "error")
-        return redirect(url_for("habitaciones"))
+@app.route("/equipos/<int:eid>/editar", methods=["GET", "POST"])
+@taller_requerido
+def editar_equipo(eid):
+    tid = session["taller_id"]
+    eq = obtener_equipo(tid, eid)
+    if not eq:
+        flash("Equipo no encontrado.", "error")
+        return redirect(url_for("equipos"))
     if request.method == "POST":
         try:
-            actualizar_habitacion(
-                hotel_id, hid,
+            actualizar_equipo(
+                tid, eid,
                 request.form["numero"].strip(),
                 request.form["tipo"].strip(),
                 int(request.form["capacidad"]),
@@ -160,114 +158,114 @@ def editar_habitacion(hid):
                 request.form["estado"].strip(),
                 request.form.get("notas", "").strip(),
             )
-            flash("Habitación actualizada.", "ok")
-            return redirect(url_for("habitaciones"))
+            flash("Datos del equipo actualizados.", "ok")
+            return redirect(url_for("equipos"))
         except Exception as e:
             flash(f"Error: {e}", "error")
-    return render_template("editar_habitacion.html", hab=hab)
+    return render_template("editar_equipo.html", eq=eq)
 
 
-@app.route("/habitaciones/<int:hid>/eliminar", methods=["POST"])
-@hotel_requerido
-def borrar_habitacion(hid):
+@app.route("/equipos/<int:eid>/eliminar", methods=["POST"])
+@taller_requerido
+def borrar_equipo(eid):
     try:
-        eliminar_habitacion(session["hotel_id"], hid)
-        flash("Habitación eliminada.", "ok")
+        eliminar_equipo(session["taller_id"], eid)
+        flash("Equipo eliminado del sistema.", "ok")
     except Exception as e:
         flash(f"Error: {e}", "error")
-    return redirect(url_for("habitaciones"))
+    return redirect(url_for("equipos"))
 
 
-# ==================== HUÉSPEDES ====================
+# ==================== CLIENTES ====================
 
-@app.route("/huespedes", methods=["GET", "POST"])
-@hotel_requerido
-def huespedes():
-    hid = session["hotel_id"]
+@app.route("/clientes", methods=["GET", "POST"])
+@taller_requerido
+def clientes():
+    tid = session["taller_id"]
     if request.method == "POST":
         try:
-            crear_huesped(
-                hid,
+            crear_cliente(
+                tid,
                 request.form["nombre"].strip(),
-                request.form.get("documento", "").strip(),
+                request.form.get("documento", "").strip(), # Cédula / RUC
                 request.form.get("telefono", "").strip(),
                 request.form.get("correo", "").strip(),
             )
-            flash("Huésped creado.", "ok")
+            flash("Cliente registrado exitosamente.", "ok")
         except Exception as e:
             flash(f"Error: {e}", "error")
-        return redirect(url_for("huespedes"))
-    return render_template("huespedes.html",
-                           huespedes=listar_huespedes(hid),
-                           hotel_nombre=session.get("hotel_nombre", ""))
+        return redirect(url_for("clientes"))
+    return render_template("clientes.html",
+                           clientes=listar_clientes(tid),
+                           taller_nombre=session.get("taller_nombre", ""))
 
 
-# ==================== ALQUILERES ====================
+# ==================== ÓRDENES DE SERVICIO ====================
 
-@app.route("/alquileres", methods=["GET", "POST"])
-@hotel_requerido
-def alquileres():
-    hid = session["hotel_id"]
+@app.route("/ordenes", methods=["GET", "POST"])
+@taller_requerido
+def ordenes():
+    tid = session["taller_id"]
     if request.method == "POST":
         try:
-            aid, total = registrar_alquiler(
-                hid,
-                int(request.form["habitacion_id"]),
-                int(request.form["huesped_id"]),
+            oid, total = registrar_orden(
+                tid,
+                int(request.form["equipo_id"]),
+                int(request.form["cliente_id"]),
                 int(request.form["cantidad_periodos"]),
                 float(request.form["tarifa"]),
                 request.form.get("moneda", "USD"),
                 request.form.get("periodo", "dia"),
                 request.form.get("observaciones", ""),
             )
-            flash(f"Alquiler #{aid} registrado. Total: {total:.2f}", "ok")
-            return redirect(url_for("ver_ticket", aid=aid))
+            flash(f"Orden de Servicio #{oid} creada. Total a cobrar: {total:.2f}", "ok")
+            return redirect(url_for("ver_ticket", aid=oid))
         except Exception as e:
             flash(f"Error: {e}", "error")
-        return redirect(url_for("alquileres"))
-    return render_template("alquileres.html",
-                           alquileres=listar_alquileres_activos(hid),
-                           habitaciones=listar_habitaciones(hid, solo_libres=True),
-                           huespedes=listar_huespedes(hid),
-                           hotel_nombre=session.get("hotel_nombre", ""))
+        return redirect(url_for("ordenes"))
+    return render_template("ordenes.html",
+                           ordenes=listar_ordenes_activas(tid),
+                           equipos=listar_equipos(tid, solo_libres=True),
+                           clientes=listar_clientes(tid),
+                           taller_nombre=session.get("taller_nombre", ""))
 
 
-@app.route("/alquileres/<int:aid>/cerrar", methods=["POST"])
-@hotel_requerido
-def cerrar_alquiler_ruta(aid):
+@app.route("/ordenes/<int:oid>/cerrar", methods=["POST"])
+@taller_requerido
+def cerrar_orden_ruta(oid):
     try:
-        cerrar_alquiler(aid, session["hotel_id"])
-        flash("Alquiler cerrado.", "ok")
+        cerrar_orden(oid, session["taller_id"])
+        flash("Orden de servicio entregada y cerrada.", "ok")
     except Exception as e:
         flash(f"Error: {e}", "error")
-    return redirect(url_for("alquileres"))
+    return redirect(url_for("ordenes"))
 
 
-# ==================== TICKET ====================
+# ==================== TICKET / RECIBO ====================
 
-@app.route("/ticket/<int:aid>")
-@hotel_requerido
-def ver_ticket(aid):
-    hid = session["hotel_id"]
-    datos = obtener_alquiler(aid, hid)
+@app.route("/ticket/<int:oid>")
+@taller_requerido
+def ver_ticket(oid):
+    tid = session["taller_id"]
+    datos = obtener_orden(oid, tid)
     if not datos:
         flash("Ticket no encontrado.", "error")
-        return redirect(url_for("alquileres"))
-    texto = generar_ticket_hotel(datos)
+        return redirect(url_for("ordenes"))
+    texto = generar_ticket_taller(datos)
     tel = datos.get("telefono") or ""
     wa_link = generar_enlace_whatsapp(tel, texto)
     sms_link = generar_enlace_sms(tel, texto)
     return render_template("ticket.html",
-                           texto=texto, aid=aid,
+                           texto=texto, aid=oid,
                            wa_link=wa_link, sms_link=sms_link)
 
 
 # ==================== MENSAJES ====================
 
 @app.route("/mensajes", methods=["GET", "POST"])
-@hotel_requerido
+@taller_requerido
 def mensajes():
-    hid = session["hotel_id"]
+    tid = session["taller_id"]
     if request.method == "POST":
         try:
             guardar_plantilla(
@@ -280,12 +278,12 @@ def mensajes():
         return redirect(url_for("mensajes"))
     return render_template("mensajes.html",
                            plantillas=listar_plantillas(),
-                           alquileres=listar_alquileres_activos(hid),
-                           hotel_nombre=session.get("hotel_nombre", ""))
+                           ordenes=listar_ordenes_activas(tid),
+                           taller_nombre=session.get("taller_nombre", ""))
 
 
 @app.route("/mensajes/<int:pid>/eliminar", methods=["POST"])
-@hotel_requerido
+@taller_requerido
 def borrar_plantilla(pid):
     try:
         eliminar_plantilla(pid)
@@ -295,13 +293,13 @@ def borrar_plantilla(pid):
     return redirect(url_for("mensajes"))
 
 
-@app.route("/api/mensaje/<int:aid>")
-@hotel_requerido
-def api_mensaje(aid):
-    hid = session["hotel_id"]
-    datos = obtener_alquiler(aid, hid)
+@app.route("/api/mensaje/<int:oid>")
+@taller_requerido
+def api_mensaje(oid):
+    tid = session["taller_id"]
+    datos = obtener_orden(oid, tid)
     if not datos:
-        return {"ok": False, "error": "Alquiler no encontrado"}, 404
+        return {"ok": False, "error": "Orden no encontrada"}, 404
     plantilla_id = request.args.get("plantilla")
     plantilla = None
     if plantilla_id:
@@ -309,13 +307,13 @@ def api_mensaje(aid):
             if str(p["id"]) == str(plantilla_id):
                 plantilla = p["contenido"]
                 break
-    texto = generar_mensaje_celular(datos, plantilla, session.get("hotel_nombre", ""))
+    texto = generar_mensaje_celular(datos, plantilla, session.get("taller_nombre", ""))
     tel = "".join(c for c in (datos.get("telefono") or "") if c.isdigit())
     return {
         "ok": True,
         "texto": texto,
         "telefono": tel,
-        "huesped": datos["huesped"],
+        "cliente": datos["cliente"],
         "wa_link": f"https://wa.me/{tel}?text={urllib.parse.quote(texto)}" if tel else None,
         "sms_link": generar_enlace_sms(tel, texto) if tel else None,
     }

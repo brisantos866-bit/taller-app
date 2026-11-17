@@ -1,21 +1,21 @@
 {% extends "base.html" %}
-{% block titulo %}Acceso Hotel{% endblock %}
+{% block titulo %}Acceso Taller{% endblock %}
 {% block contenido %}
 <div style="max-width: 400px; margin: 40px auto; background: #1e1e2e; padding: 25px; border-radius: 10px; border: 1px solid #45475a;">
   
-  <h2 style="text-align: center; margin-bottom: 20px;">🏨 Acceso Hotel</h2>
+  <h2 style="text-align: center; margin-bottom: 20px;">🛠️ Acceso Taller</h2>
 
   <!-- Pestañas para cambiar entre Login y Registro -->
   <div style="display: flex; margin-bottom: 20px; border-bottom: 1px solid #45475a;">
     <button id="tab-login" onclick="mostrarLogin()" style="flex: 1; background: none; border: none; color: #cdd6f4; padding: 10px; font-size: 16px; border-bottom: 2px solid #89b4fa; cursor: pointer;">Iniciar Sesión</button>
-    <button id="tab-registro" onclick="mostrarRegistro()" style="flex: 1; background: none; border: none; color: #a6adc8; padding: 10px; font-size: 16px; border-bottom: 2px solid transparent; cursor: pointer;">Registrarme</button>
+    <button id="tab-registro" onclick="mostrarRegistro()" style="flex: 1; background: none; border: none; color: #a6adc8; padding: 10px; font-size: 16px; border-bottom: 2px solid transparent; cursor: pointer;">Registrar Taller</button>
   </div>
 
   <!-- FORMULARIO DE LOGIN -->
   <div id="form-login">
     <form method="post">
       <label style="display: block; margin-bottom: 10px; color: #a6adc8;">Correo electrónico:</label>
-      <input type="email" name="email" required placeholder="correo@hotel.com" 
+      <input type="email" name="email" required placeholder="correo@taller.com" 
              style="width: 100%; background: #11111b; color: #cdd6f4; border: 1px solid #45475a; padding: 10px; border-radius: 6px; margin-bottom: 15px;">
 
       <label style="display: block; margin-bottom: 10px; color: #a6adc8;">PIN de acceso:</label>
@@ -29,12 +29,12 @@
   <!-- FORMULARIO DE REGISTRO -->
   <div id="form-registro" style="display: none;">
     <form method="post" action="/registro">
-      <label style="display: block; margin-bottom: 10px; color: #a6adc8;">Nombre del Hotel:</label>
-      <input type="text" name="nombre" required placeholder="Hotel Ejemplo" 
+      <label style="display: block; margin-bottom: 10px; color: #a6adc8;">Nombre del Taller:</label>
+      <input type="text" name="nombre" required placeholder="Taller Mecánico El Rayo" 
              style="width: 100%; background: #11111b; color: #cdd6f4; border: 1px solid #45475a; padding: 10px; border-radius: 6px; margin-bottom: 15px;">
 
       <label style="display: block; margin-bottom: 10px; color: #a6adc8;">Correo electrónico:</label>
-      <input type="email" name="email" required placeholder="correo@hotel.com" 
+      <input type="email" name="email" required placeholder="correo@taller.com" 
              style="width: 100%; background: #11111b; color: #cdd6f4; border: 1px solid #45475a; padding: 10px; border-radius: 6px; margin-bottom: 15px;">
 
       <label style="display: block; margin-bottom: 10px; color: #a6adc8;">Teléfono (opcional):</label>
@@ -45,7 +45,7 @@
       <input type="text" name="direccion" placeholder="Calle, ciudad" 
              style="width: 100%; background: #11111b; color: #cdd6f4; border: 1px solid #45475a; padding: 10px; border-radius: 6px; margin-bottom: 20px;">
 
-      <button class="ok" style="width: 100%; padding: 12px; font-size: 16px;">Registrarme y solicitar PIN</button>
+      <button class="ok" style="width: 100%; padding: 12px; font-size: 16px;">Registrar Taller y solicitar PIN</button>
     </form>
   </div>
 
